@@ -41,6 +41,22 @@ Releases have several builds/binaries, and you'll need to download the right one
  - Windows with arm processor: I don't believe you
  - Linux: you got this
 
+## Docker
+
+In case you don't want to use the binaries you can use docker. 
+
+Building the docker image
+
+``` docker build -t airplay-music-watcher:latest . ```  
+
+Running the container
+
+```docker run -v $(pwd)/config.json:/config/config.json --net=host airplay-music-watcher:latest```
+
+or use the docker-compose.yaml file and simply call 
+
+``` docker compose up```
+
 ## JSON Config File Example
 
 This example json file would say "stereo starting" when the Airplay device named "Stereo" starts playing, and say "stereo stopping" when it stops.
@@ -74,6 +90,30 @@ This project can be used to run any command line utility, and isn't tied to home
 
 However, use with homebridge is the most common use case. For homebridge users, this works well with the [homebridge-config-ui-x API](https://github.com/oznu/homebridge-config-ui-x/wiki/API-Reference). Use the curl commands generated in the API UI in your JSON file; these commands will call the API and enable/disable smart home devices (like a smart plug controlling your vintage audio amp). You'll need to extend the [sessionTimeout](https://github.com/oznu/homebridge-config-ui-x/wiki/Config-Options) config option so your auth tokens don't expire.
 
+## Home Assistant usage
+To integrate with home assistant [web hooks](https://www.home-assistant.io/docs/automation/trigger/#webhook-trigger) can be easily used and called via curl.
+
+The following example can be used in the config.json as command which will be called in case of an event
+
+```curl -X POST -d 'device=my_device_name&action=playing' http://my_home_assistant_ip:8123/api/webhook/airplay-watcher-webhook``` 
+
+An automation which handles these events could look like this
+```
+- id: airplay-watcher
+  alias: Airplay Watcher Automation
+  trigger:
+    - platform: webhook
+      webhook_id: "airplay-watcher-webhook"
+      allowed_methods:
+        - POST
+      local_only: true
+  action: 
+    - service: notify.my_device_name
+      data:
+        title: Airplay Trigger
+        message: 'Airplay device {{ trigger.data.device}} changed to {{ trigger.data.action}} '
+
+```
 ## How this works
 
 This process monitors UDP traffic on your network for MDNS records from Airplay devices. Certain Airplay MDNS TXT records include a [bitmask](https://github.com/openairplay/airplay-spec/blob/master/src/status_flags.md) which let us infer the device's state (playing or not).
