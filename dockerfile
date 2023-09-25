@@ -15,8 +15,7 @@ COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /airplay-music-watcher
 
 # Deploy the application binary into a lean image
-FROM gcr.io/distroless/base-debian11 AS build-release-stage
-
+FROM alpine/curl AS build-release-stage
 
 WORKDIR /
 
@@ -30,7 +29,7 @@ COPY --from=build-stage /airplay-music-watcher /airplay-music-watcher
 EXPOSE 5353
 
 # Run
-USER nonroot:nonroot
+USER root:root
 VOLUME [ "/config" ]
 
 ENTRYPOINT ["/airplay-music-watcher", "/config/config.json"]
